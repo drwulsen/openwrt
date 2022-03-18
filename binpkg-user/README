@@ -1,0 +1,3 @@
+musl needs /proc/self/fd for pwd - so /proc must be mounted in the chroot directory.
+script: proc-mount-sda1.sh -> cp /usr/bin -> insert into rc.local
+on sda1 .plugged_in must exist as regular file
