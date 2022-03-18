@@ -10,7 +10,7 @@ configs=(
 /etc/config/{dhcp,dropbear,firewall,fstab,luci,network,system,uhttpd,wireless}
 /etc/dropbear/{authorized_keys,dropbear_ed25519_host_key,dropbear_rsa_host_key}
 /etc/ssh/sshd_config
-/etc/{passwd,group,rc.local,shadow,sysupgrade.conf,uhttpd.crt,uhttpd.key}
+/etc/{firewall.user,passwd,group,rc.local,shadow,sysupgrade.conf,uhttpd.crt,uhttpd.key}
 /usr/local
 /www/luci-static/openwrt2020/cascade.css
 )
