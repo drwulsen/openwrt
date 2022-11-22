@@ -1,12 +1,21 @@
 #!/bin/bash
 #variables default values
-dnsname="m1900.lan"
-port="2222"
-imagebuilder_path="./imagebuilder/"
-buildprofile="linksys_wrt1900acs"
+str_dnsname="m1900.lan"
+str_port="2222"
+str_imagebuilder_path="./imagebuilder"
+str_buildprofile="linksys_wrt1900acs"
+str_output_dir="/tmp/${str_buildprofile}"
+
+arr_rsync_opts=(
+--archive
+--verbose
+--numeric-ids
+--relative
+"--rsh=ssh -p ${str_port}"
+)
 
 #what to scp from the target and include in the image as default configuration
-configs=(
+arr_configs=(
 /etc/config/{adblock,dhcp,dropbear,firewall,fstab,luci,network,sqm,system,uhttpd,wireless}
 /etc/dropbear/{authorized_keys,dropbear_ed25519_host_key,dropbear_rsa_host_key}
 /etc/ssh/sshd_config
@@ -16,7 +25,7 @@ configs=(
 )
 
 #packages to include in the image
-packages_include=(
+arr_packages_include=(
 iptables-mod-conntrack-extra
 iptables-mod-extra
 kmod-sched
@@ -34,47 +43,50 @@ ulogd
 ulogd-mod-extra
 ulogd-mod-nfct
 ulogd-mod-syslog
+rsync
 )
 
 #packages to remove from the image
-packages_exclude=(
+arr_packages_exclude=(
 ppp
 ppp-mod-pppoe
 )
 
 #services to disable by default
-disabled_services=(
+arr_disabled_services=(
 ulogd
 adblock
 )
 
-#create argument lists from arrays
-packages_combined=(
-"${packages_include[@]}"
-"${packages_exclude[@]/#/-}"
-)
+#configs: expand to a string with root@dnsname prepended for ease of scp use
+arr_configs=( "${arr_configs[@]/#/root@$str_dnsname:}" )
 
-packages="${packages_combined[@]@P}"
-config_list="${configs[@]@P}"
-d_services_list="${disabled_services[@]@P}"
+#packages: combine include and exclude list, prepend '-' before any exclude
+arr_packages=( "${arr_packages_include[@]}" )
+arr_packages+=( "${arr_packages_exclude[@]/#/-}" )
 
-echo "Files to pull:"
-for i in "${config_list[@]}"; do
-	echo "$i";
-done
+mkdir -p "${str_imagebuilder_path}/files"
+rm -rf "${str_imagebuilder_path}/files/"*
+#scp -rCOP "$str_port" "${arr_configs[@]}" "${str_imagebuilder_path}/files"
+rsync "${arr_rsync_opts[@]}" --verbose "${arr_configs[@]}" "${str_imagebuilder_path}/files"
 
-rm -rf "${imagebuilder_path}"/files/*
-rsync -Ravz -e "ssh -p $port" "root@${dnsname}":"${config_list}" "${imagebuilder_path}/files"
+#create output directory
+mkdir -p "$str_output_dir"
 
-sleep 5
+#TODO: log and exit
+cd "$str_imagebuilder_path" || exit
 
-cd "$imagebuilder_path"
+make clean
 make image \
-PROFILE="$buildprofile" \
-BIN_DIR="/tmp/${buildprofile}" \
-PACKAGES="${packages}" \
+PROFILE="$str_buildprofile" \
+BIN_DIR="$str_output_dir" \
+PACKAGES="${arr_packages[*]}" \
 FILES="files" \
-DISABLED_SERVICES="$d_services_list"
-cd -
+DISABLED_SERVICES="${arr_disabled_services[*]}"
+cd ..
 
-scp -P 2222 /tmp/"${buildprofile}"/*sysupgrade* root@"${dnsname}":/tmp/
+#find sysupgrade file and copy to the target
+str_sysupgrade_file=$(find "$str_output_dir" -name "*${str_buildprofile}*sysupgrade*.bin")
+echo "$str_sysupgrade_file"
+scp -COP "$str_port" "$str_sysupgrade_file" "root@${str_dnsname}:/tmp/"
+ssh -p "$str_port" root@"$str_dnsname"
