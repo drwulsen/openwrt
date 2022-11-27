@@ -5,6 +5,7 @@ str_port="2222"
 str_imagebuilder_path="./imagebuilder"
 str_buildprofile="linksys_wrt1200ac"
 str_output_dir="/tmp/${str_buildprofile}"
+str_uci_defaults="./${str_buildprofile}-uci-defaults"
 
 arr_rsync_opts=(
 --archive
@@ -15,11 +16,18 @@ arr_rsync_opts=(
 )
 
 #what to scp from the target and include in the image as default configuration
+#arr_configs=(
+#/etc/config/{dhcp,dropbear,firewall,fstab,luci,network,system,uhttpd,wireless}
+#/etc/dropbear/{authorized_keys,dropbear_ed25519_host_key,dropbear_rsa_host_key}
+#/etc/ssh/sshd_config
+#/etc/{firewall.user,group,passwd,rc.local,shadow,sysupgrade.conf,uhttpd.crt,uhttpd.key}
+#/usr/local
+#/www/luci-static/openwrt2020/cascade.css
+#)
+
 arr_configs=(
-/etc/config/{dhcp,dropbear,firewall,fstab,luci,network,system,uhttpd,wireless}
 /etc/dropbear/{authorized_keys,dropbear_ed25519_host_key,dropbear_rsa_host_key}
-/etc/ssh/sshd_config
-/etc/{firewall.user,group,passwd,rc.local,shadow,sysupgrade.conf,uhttpd.crt,uhttpd.key}
+/etc/{group,passwd,rc.local,shadow,sysupgrade.conf,uhttpd.crt,uhttpd.key}
 /usr/local
 /www/luci-static/openwrt2020/cascade.css
 )
@@ -64,8 +72,17 @@ arr_packages+=( "${arr_packages_exclude[@]/#/-}" )
 
 mkdir -p "${str_imagebuilder_path}/files"
 rm -rf "${str_imagebuilder_path}/files/"*
-#scp -rCOP "$str_port" "${arr_configs[@]}" "${str_imagebuilder_path}/files"
+echo "Copying selected config files fom target $str_dnsname"
 rsync "${arr_rsync_opts[@]}" --verbose "${arr_configs[@]}" "${str_imagebuilder_path}/files"
+sleep 1
+
+#copy uci-defaults
+if [ -d "$str_uci_defaults" ]; then
+	mkdir -p "${str_imagebuilder_path}/files/etc/uci-defaults/"
+	echo "Copying UCI-defaults for selected profile ${str_buildprofile}"
+	cp -rv "${str_uci_defaults}/"* "${str_imagebuilder_path}/files/etc/uci-defaults/"
+fi
+sleep 1
 
 #create output directory
 mkdir -p "$str_output_dir"
