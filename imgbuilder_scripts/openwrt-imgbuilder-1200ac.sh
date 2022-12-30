@@ -28,6 +28,7 @@ arr_rsync_opts=(
 arr_configs=(
 /etc/dropbear/{authorized_keys,dropbear_ed25519_host_key,dropbear_rsa_host_key}
 /etc/{group,passwd,rc.local,shadow,sysupgrade.conf,uhttpd.crt,uhttpd.key}
+/etc/ssh
 /usr/local
 /www/luci-static/openwrt2020/cascade.css
 )
