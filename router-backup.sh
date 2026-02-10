@@ -1,6 +1,6 @@
 #!/bin/bash
-routers=(wrt1200 wrt1900 nanopi)
-backupdir=/home/wula/backup-router
+routers=(router1.lan router2.lan whatever.lan)
+backupdir="~/backup-router"
 router=""
 function backup () {
 	ssh -q -o ConnectTimeout=5 root@"${router}" 'sysupgrade -k -b -' > "${backupdir%/}/${router}/${router}.tgz"
